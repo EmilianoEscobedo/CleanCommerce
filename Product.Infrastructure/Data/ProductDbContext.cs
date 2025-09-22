@@ -2,9 +2,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Product.Infrastructure.Data;
 
-public class ApplicationDbContext : DbContext
+public class ProductDbContext : DbContext
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
+    public ProductDbContext(DbContextOptions<ProductDbContext> options) : base(options)
     {
     }
 

@@ -2,9 +2,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Customer.Infrastructure.Data;
 
-public class ApplicationDbContext : DbContext
+public class CustomerDbContext : DbContext
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
+    public CustomerDbContext(DbContextOptions<CustomerDbContext> options) : base(options)
     {
     }
 
