@@ -12,18 +12,21 @@ public class OrderService : IOrderService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly IValidator<CreateOrderDto> _createOrderValidator;
-    private readonly IExternalServicesClient _externalServicesClient;
+    private readonly ICustomerService _customerService;
+    private readonly IProductService _productService;
 
     public OrderService(
         IUnitOfWork unitOfWork,
         IMapper mapper,
         IValidator<CreateOrderDto> createOrderValidator,
-        IExternalServicesClient externalServicesClient)
+        ICustomerService customerService,
+        IProductService productService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _createOrderValidator = createOrderValidator;
-        _externalServicesClient = externalServicesClient;
+        _customerService = customerService;
+        _productService = productService;
     }
 
     public async Task<Result<OrderResponseDto>> CreateOrderAsync(CreateOrderDto orderDto)
@@ -32,7 +35,7 @@ public class OrderService : IOrderService
         if (!validationResult.IsValid)
             return Result<OrderResponseDto>.Failure(validationResult.Errors.Select(e => e.ErrorMessage));
 
-        var customerResult = await _externalServicesClient.GetCustomerAsync(orderDto.CustomerId);
+        var customerResult = await _customerService.GetCustomerAsync(orderDto.CustomerId);
         if (customerResult.IsFailure)
             return Result<OrderResponseDto>.Failure("Customer not found");
 
@@ -42,7 +45,7 @@ public class OrderService : IOrderService
         var mappedItems = new List<OrderItem>();
         foreach (var itemDto in orderDto.Items)
         {
-            var productResult = await _externalServicesClient.GetProductAsync(itemDto.ProductId);
+            var productResult = await _productService.GetProductAsync(itemDto.ProductId);
             if (productResult.IsFailure)
                 return Result<OrderResponseDto>.Failure($"Product {itemDto.ProductId} not found");
 
@@ -59,7 +62,7 @@ public class OrderService : IOrderService
             orderItem.CalculateSubtotal();
             mappedItems.Add(orderItem);
 
-            var stockUpdate = await _externalServicesClient.UpdateProductStockAsync(product.Id, -quantity);
+            var stockUpdate = await _productService.UpdateProductStockAsync(product.Id, -quantity);
             if (stockUpdate.IsFailure)
                 return Result<OrderResponseDto>.Failure($"Failed to update stock for product {product.Id}");
         }

@@ -3,16 +3,16 @@ using Microsoft.Extensions.Options;
 using Order.Application.DTOs;
 using Order.Application.Services;
 using Order.Domain.Common;
-using ProductDto = Order.Application.DTOs.ProductDto;
+using Order.Infrastructure.ExternalService;
 
-namespace Order.Infrastructure.ExternalService;
+namespace Order.Infrastructure.Services;
 
-public class ExternalServicesClient : IExternalServicesClient
+public class ProductService : IProductService
 {
     private readonly HttpClient _httpClient;
-    private readonly ExternalServiceSettings _settings;
+    private readonly ClientSettings _settings;
 
-    public ExternalServicesClient(HttpClient httpClient, IOptions<ExternalServiceSettings> settings)
+    public ProductService(HttpClient httpClient, IOptions<ClientSettings> settings)
     {
         _httpClient = httpClient;
         _settings = settings.Value;
@@ -28,18 +28,6 @@ public class ExternalServicesClient : IExternalServicesClient
         return product is null 
             ? Result<ProductDto>.Failure("Product deserialization failed.") 
             : Result<ProductDto>.Success(product);
-    }
-
-    public async Task<Result<CustomerDto>> GetCustomerAsync(int id)
-    {
-        var response = await _httpClient.GetAsync($"{_settings.CustomerBaseUrl}/{id}");
-        if (!response.IsSuccessStatusCode)
-            return Result<CustomerDto>.Failure($"Failed to fetch customer {id}. Status: {response.StatusCode}");
-
-        var customer = await response.Content.ReadFromJsonAsync<CustomerDto>();
-        return customer is null 
-            ? Result<CustomerDto>.Failure("Customer deserialization failed.") 
-            : Result<CustomerDto>.Success(customer);
     }
 
     public async Task<Result> UpdateProductStockAsync(int productId, int quantity)

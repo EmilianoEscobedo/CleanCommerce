@@ -8,6 +8,7 @@ using Order.Domain.Repositories;
 using Order.Infrastructure.Data;
 using Order.Infrastructure.ExternalService;
 using Order.Infrastructure.Repositories;
+using Order.Infrastructure.Services;
 using Order.Infrastructure.UnitOfWork;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,9 +29,16 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Application services
-builder.Services.Configure<ExternalServiceSettings>(
-    builder.Configuration.GetSection("ExternalServices"));
-builder.Services.AddHttpClient<IExternalServicesClient, ExternalServicesClient>()
+builder.Services.Configure<ClientSettings>(
+    builder.Configuration.GetSection("ClientSettings"));
+builder.Services.AddHttpClient<IProductService, ProductService>()
+    .ConfigurePrimaryHttpMessageHandler(() => 
+        new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+        });
+
+builder.Services.AddHttpClient<ICustomerService, CustomerService>()
     .ConfigurePrimaryHttpMessageHandler(() => 
         new HttpClientHandler
         {
