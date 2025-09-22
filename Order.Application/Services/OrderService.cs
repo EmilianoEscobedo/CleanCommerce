@@ -50,7 +50,7 @@ public class OrderService : IOrderService
             var quantity = Math.Min(itemDto.Quantity, product.StockQuantity);
 
             if (quantity <= 0)
-                return Result<OrderResponseDto>.Failure($"Invalid quantity for product {product.Id}");
+                continue; 
 
             var orderItem = _mapper.Map<OrderItem>(itemDto);
             orderItem.ProductName = product.Name;
@@ -64,6 +64,9 @@ public class OrderService : IOrderService
                 return Result<OrderResponseDto>.Failure($"Failed to update stock for product {product.Id}");
         }
 
+        if (!mappedItems.Any())
+            return Result<OrderResponseDto>.Failure("No items with available stock to create the order");
+
         foreach (var item in mappedItems)
             order.AddItem(item);
 
@@ -76,7 +79,7 @@ public class OrderService : IOrderService
         var orderResponseDto = _mapper.Map<OrderResponseDto>(createdOrderResult.Value);
         return Result<OrderResponseDto>.Success(orderResponseDto);
     }
-
+    
     public async Task<Result<OrderResponseDto>> GetOrderByIdAsync(int id)
     {
         var orderResult = await _unitOfWork.OrderRepository.GetByIdAsync(id);
