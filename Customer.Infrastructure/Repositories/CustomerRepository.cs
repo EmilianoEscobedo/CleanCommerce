@@ -1,65 +1,97 @@
 using Microsoft.EntityFrameworkCore;
+using Customer.Domain.Common;
 using Customer.Domain.Repositories;
 using Customer.Infrastructure.Data;
 
 namespace Customer.Infrastructure.Repositories;
+using Domain.Entities;
 
 public class CustomerRepository : ICustomerRepository
 {
-    private readonly ApplicationDbContext _context;
+    private readonly CustomerDbContext _context;
 
-    public CustomerRepository(ApplicationDbContext context)
+    public CustomerRepository(CustomerDbContext context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }
-    
-    public async Task<int> SaveChangesAsync()
-    {
-        return await _context.SaveChangesAsync();
-    }
 
-    public async Task<int> AddAsync(Domain.Entities.Customer customer)
+    public async Task<Result<int>> SaveChangesAsync()
     {
-        await _context.Customers.AddAsync(customer);
-        await _context.SaveChangesAsync();
-        return customer.Id;
-    }
-
-    public async Task DeleteAsync(int id)
-    {
-        var customer = await _context.Customers.FindAsync(id);
-        if (customer != null)
+        try
         {
-            _context.Customers.Remove(customer);
+            var changes = await _context.SaveChangesAsync();
+            return Result<int>.Success(changes);
+        }
+        catch (Exception ex)
+        {
+            return Result<int>.Failure($"Failed to save changes: {ex.Message}");
         }
     }
 
-    public async Task<bool> ExistsAsync(int id)
+    public async Task<Result<Customer>> AddAsync(Customer customer)
     {
-        return await _context.Customers.AnyAsync(c => c.Id == id);
+        try
+        {
+            await _context.Customers.AddAsync(customer);
+            return Result<Customer>.Success(customer);
+        }
+        catch (Exception ex)
+        {
+            return Result<Customer>.Failure($"Failed to add customer: {ex.Message}");
+        }
     }
 
-    public async Task<IEnumerable<Domain.Entities.Customer>> GetAllAsync()
+    public async Task<Result> DeleteAsync(int id)
     {
-        return await _context.Customers.ToListAsync();
+        var customer = await _context.Customers.FindAsync(id);
+        if (customer == null)
+            return Result.Failure($"Customer with ID {id} not found");
+
+        _context.Customers.Remove(customer);
+        return Result.Success();
     }
 
-    public async Task<IEnumerable<Domain.Entities.Customer>> GetAllPaginatedAsync(int page, int pageSize)
+    public async Task<Result<bool>> ExistsAsync(int id)
     {
-        return await _context.Customers
+        var exists = await _context.Customers.AnyAsync(c => c.Id == id);
+        return Result<bool>.Success(exists);
+    }
+
+    public async Task<Result<IEnumerable<Customer>>> GetAllAsync()
+    {
+        var customers = await _context.Customers.ToListAsync();
+        return Result<IEnumerable<Customer>>.Success(customers);
+    }
+
+    public async Task<Result<IEnumerable<Customer>>> GetAllPaginatedAsync(int page, int pageSize)
+    {
+        if (page <= 0 || pageSize <= 0)
+            return Result<IEnumerable<Customer>>.Failure("Invalid pagination parameters");
+
+        var customers = await _context.Customers
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
+
+        return Result<IEnumerable<Customer>>.Success(customers);
     }
 
-    public async Task<Domain.Entities.Customer?> GetByIdAsync(int id)
+    public async Task<Result<Customer>> GetByIdAsync(int id)
     {
-        return await _context.Customers.FindAsync(id);
+        var customer = await _context.Customers.FindAsync(id);
+        if (customer == null)
+            return Result<Customer>.Failure($"Customer with ID {id} not found");
+
+        return Result<Customer>.Success(customer);
     }
 
-    public Task UpdateAsync(Domain.Entities.Customer customer)
+    public async Task<Result> UpdateAsync(Customer customer)
     {
+        var exists = await _context.Customers.AnyAsync(c => c.Id == customer.Id);
+        if (!exists)
+            return Result.Failure($"Customer with ID {customer.Id} not found");
+
         _context.Customers.Update(customer);
-        return Task.CompletedTask;
+        return Result.Success();
     }
 }

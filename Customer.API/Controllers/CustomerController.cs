@@ -17,9 +17,14 @@ public class CustomerController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<CustomerDto>>> GetAllCustomers()
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IEnumerable<CustomerDto>>> GetAllProducts()
     {
         var result = await _customerService.GetAllCustomersAsync();
+
+        if (result.IsFailure)
+            return BadRequest(result.Errors);
+
         return Ok(result.Value);
     }
 

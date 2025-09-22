@@ -9,12 +9,10 @@ public class Result
     protected Result(bool isSuccess, IEnumerable<string> errors)
     {
         IsSuccess = isSuccess;
-        Errors = errors ?? new List<string>();
+        Errors = errors;
     }
 
     public static Result Success() => new(true, new List<string>());
-    
-    public static Result Failure(IEnumerable<string> errors) => new(false, errors);
     
     public static Result Failure(string error) => new(false, new List<string> { error });
 }
@@ -28,7 +26,7 @@ public class Result<T> : Result
         get 
         {
             if (IsFailure)
-                throw new System.InvalidOperationException("Cannot access Value on a failure result.");
+                throw new InvalidOperationException("Cannot access Value on a failure result.");
                 
             return _value;
         }

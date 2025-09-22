@@ -27,20 +27,21 @@ public class CustomerService : ICustomerService
 
     public async Task<Result<IEnumerable<CustomerDto>>> GetAllCustomersAsync()
     {
-        var customers = await _customerRepository.GetAllAsync();
-        var customerDtos = _mapper.Map<IEnumerable<CustomerDto>>(customers);
+        var result = await _customerRepository.GetAllAsync();
+        if (result.IsFailure)
+            return Result<IEnumerable<CustomerDto>>.Failure(result.Errors);
+
+        var customerDtos = _mapper.Map<IEnumerable<CustomerDto>>(result.Value);
         return Result<IEnumerable<CustomerDto>>.Success(customerDtos);
     }
 
     public async Task<Result<CustomerDto>> GetCustomerByIdAsync(int id)
     {
-        var customer = await _customerRepository.GetByIdAsync(id);
-        if (customer == null)
-        {
-            return Result<CustomerDto>.Failure($"Customer with id {id} not found");
-        }
+        var result = await _customerRepository.GetByIdAsync(id);
+        if (result.IsFailure)
+            return Result<CustomerDto>.Failure(result.Errors);
 
-        var customerDto = _mapper.Map<CustomerDto>(customer);
+        var customerDto = _mapper.Map<CustomerDto>(result.Value);
         return Result<CustomerDto>.Success(customerDto);
     }
 
@@ -48,18 +49,21 @@ public class CustomerService : ICustomerService
     {
         var validationResult = await _createValidator.ValidateAsync(createCustomerDto);
         if (!validationResult.IsValid)
-        {
             return Result<CustomerDto>.Failure(validationResult.Errors.Select(e => e.ErrorMessage).ToList());
-        }
 
         var customer = new Domain.Entities.Customer(
-            createCustomerDto.Name, 
-            createCustomerDto.Email, 
+            createCustomerDto.Name,
+            createCustomerDto.Email,
             createCustomerDto.Address ?? string.Empty
         );
 
-        await _customerRepository.AddAsync(customer);
-        await _customerRepository.SaveChangesAsync();
+        var addResult = await _customerRepository.AddAsync(customer);
+        if (addResult.IsFailure)
+            return Result<CustomerDto>.Failure(addResult.Errors);
+
+        var saveResult = await _customerRepository.SaveChangesAsync();
+        if (saveResult.IsFailure)
+            return Result<CustomerDto>.Failure(saveResult.Errors);
 
         var customerDto = _mapper.Map<CustomerDto>(customer);
         return Result<CustomerDto>.Success(customerDto);
@@ -69,24 +73,26 @@ public class CustomerService : ICustomerService
     {
         var validationResult = await _updateValidator.ValidateAsync(updateCustomerDto);
         if (!validationResult.IsValid)
-        {
             return Result<CustomerDto>.Failure(validationResult.Errors.Select(e => e.ErrorMessage).ToList());
-        }
 
-        var existingCustomer = await _customerRepository.GetByIdAsync(id);
-        if (existingCustomer == null)
-        {
-            return Result<CustomerDto>.Failure($"Customer with id {id} not found");
-        }
+        var existingResult = await _customerRepository.GetByIdAsync(id);
+        if (existingResult.IsFailure)
+            return Result<CustomerDto>.Failure(existingResult.Errors);
 
+        var existingCustomer = existingResult.Value;
         existingCustomer.UpdateDetails(
             updateCustomerDto.Name,
             updateCustomerDto.Email,
             updateCustomerDto.Address
         );
 
-        await _customerRepository.UpdateAsync(existingCustomer);
-        await _customerRepository.SaveChangesAsync();
+        var updateResult = await _customerRepository.UpdateAsync(existingCustomer);
+        if (updateResult.IsFailure)
+            return Result<CustomerDto>.Failure(updateResult.Errors);
+
+        var saveResult = await _customerRepository.SaveChangesAsync();
+        if (saveResult.IsFailure)
+            return Result<CustomerDto>.Failure(saveResult.Errors);
 
         var customerDto = _mapper.Map<CustomerDto>(existingCustomer);
         return Result<CustomerDto>.Success(customerDto);
@@ -94,14 +100,17 @@ public class CustomerService : ICustomerService
 
     public async Task<Result<bool>> DeleteCustomerAsync(int id)
     {
-        var existingCustomer = await _customerRepository.GetByIdAsync(id);
-        if (existingCustomer == null)
-        {
-            return Result<bool>.Failure($"Customer with id {id} not found");
-        }
+        var existingResult = await _customerRepository.GetByIdAsync(id);
+        if (existingResult.IsFailure)
+            return Result<bool>.Failure(existingResult.Errors);
 
-        await _customerRepository.DeleteAsync(id);
-        await _customerRepository.SaveChangesAsync();
+        var deleteResult = await _customerRepository.DeleteAsync(id);
+        if (deleteResult.IsFailure)
+            return Result<bool>.Failure(deleteResult.Errors);
+
+        var saveResult = await _customerRepository.SaveChangesAsync();
+        if (saveResult.IsFailure)
+            return Result<bool>.Failure(saveResult.Errors);
 
         return Result<bool>.Success(true);
     }
