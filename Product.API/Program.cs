@@ -33,7 +33,7 @@ builder.Services.AddScoped<IValidator<UpdateProductDto>, UpdateProductDtoValidat
 builder.Services.AddScoped<IValidator<UpdateProductStockDto>, UpdateProductStockDtoValidator>();
 
 // AutoMapper
-builder.Services.AddAutoMapper(typeof(MappingProfile));
+builder.Services.AddAutoMapper(typeof(ProductMappingProfile));
 
 var app = builder.Build();
 

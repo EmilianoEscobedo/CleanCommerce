@@ -3,9 +3,9 @@ using Customer.Application.DTOs;
 
 namespace Customer.Application.Mappings;
 
-public class MappingProfile : Profile
+public class CustomerMappingProfile : Profile
 {
-    public MappingProfile()
+    public CustomerMappingProfile()
     {
         CreateMap<Domain.Entities.Customer, CustomerDto>();
 

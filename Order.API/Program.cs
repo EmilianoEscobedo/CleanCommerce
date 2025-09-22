@@ -44,7 +44,7 @@ builder.Services.AddScoped<IValidator<CreateOrderDto>, CreateOrderDtoValidator>(
 builder.Services.AddScoped<IValidator<OrderItemDto>, OrderItemDtoValidator>();
 
 // AutoMapper
-builder.Services.AddAutoMapper(typeof(MappingProfile));
+builder.Services.AddAutoMapper(typeof(OrderMappingProfile));
 
 var app = builder.Build();
 

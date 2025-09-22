@@ -32,7 +32,7 @@ builder.Services.AddScoped<IValidator<CreateCustomerDto>, CreateCustomerDtoValid
 builder.Services.AddScoped<IValidator<UpdateCustomerDto>, UpdateCustomerDtoValidator>();
 
 // AutoMapper
-builder.Services.AddAutoMapper(typeof(MappingProfile));
+builder.Services.AddAutoMapper(typeof(CustomerMappingProfile));
 
 var app = builder.Build();
 

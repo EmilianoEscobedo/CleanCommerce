@@ -4,9 +4,9 @@ using Order.Domain.Entities;
 
 namespace Order.Application.Mapping;
 
-public class MappingProfile : Profile
+public class OrderMappingProfile : Profile
 {
-    public MappingProfile()
+    public OrderMappingProfile()
     {
         CreateMap<Domain.Entities.Order, OrderResponseDto>()
             .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.Items));
