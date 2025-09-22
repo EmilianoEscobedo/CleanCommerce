@@ -1,64 +1,97 @@
 using Microsoft.EntityFrameworkCore;
+using Product.Domain.Common;
 using Product.Domain.Repositories;
 using Product.Infrastructure.Data;
 
 namespace Product.Infrastructure.Repositories;
+using Domain.Entities;
 
 public class ProductRepository : IProductRepository
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ProductDbContext _context;
 
-    public ProductRepository(ApplicationDbContext context)
+    public ProductRepository(ProductDbContext context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }
-    
-    public async Task<int> SaveChangesAsync()
-    {
-        return await _context.SaveChangesAsync();
-    }
 
-    public async Task<int> AddAsync(Domain.Entities.Product product)
+    public async Task<Result<int>> SaveChangesAsync()
     {
-        await _context.Products.AddAsync(product);
-        return product.Id;
-    }
-
-    public async Task DeleteAsync(int id)
-    {
-        var product = await _context.Products.FindAsync(id);
-        if (product != null)
+        try
         {
-            _context.Products.Remove(product);
+            var changes = await _context.SaveChangesAsync();
+            return Result<int>.Success(changes);
+        }
+        catch (Exception ex)
+        {
+            return Result<int>.Failure($"Failed to save changes: {ex.Message}");
         }
     }
 
-    public async Task<bool> ExistsAsync(int id)
+    public async Task<Result<Product>> AddAsync(Product product)
     {
-        return await _context.Products.AnyAsync(p => p.Id == id);
+        try
+        {
+            await _context.Products.AddAsync(product);
+            return Result<Product>.Success(product);
+        }
+        catch (Exception ex)
+        {
+            return Result<Product>.Failure($"Failed to add product: {ex.Message}");
+        }
     }
 
-    public async Task<IEnumerable<Domain.Entities.Product>> GetAllAsync()
+    public async Task<Result> DeleteAsync(int id)
     {
-        return await _context.Products.ToListAsync();
+        var product = await _context.Products.FindAsync(id);
+        if (product == null)
+            return Result.Failure($"Product with ID {id} not found");
+
+        _context.Products.Remove(product);
+        return Result.Success();
     }
 
-    public async Task<IEnumerable<Domain.Entities.Product>> GetAllPaginatedAsync(int page, int pageSize)
+    public async Task<Result<bool>> ExistsAsync(int id)
     {
-        return await _context.Products
+        var exists = await _context.Products.AnyAsync(p => p.Id == id);
+        return Result<bool>.Success(exists);
+    }
+
+    public async Task<Result<IEnumerable<Product>>> GetAllAsync()
+    {
+        var products = await _context.Products.ToListAsync();
+        return Result<IEnumerable<Product>>.Success(products);
+    }
+
+    public async Task<Result<IEnumerable<Product>>> GetAllPaginatedAsync(int page, int pageSize)
+    {
+        if (page <= 0 || pageSize <= 0)
+            return Result<IEnumerable<Product>>.Failure("Invalid pagination parameters");
+
+        var products = await _context.Products
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
+
+        return Result<IEnumerable<Product>>.Success(products);
     }
 
-    public async Task<Domain.Entities.Product?> GetByIdAsync(int id)
+    public async Task<Result<Product>> GetByIdAsync(int id)
     {
-        return await _context.Products.FindAsync(id);
+        var product = await _context.Products.FindAsync(id);
+        if (product == null)
+            return Result<Product>.Failure($"Product with ID {id} not found");
+
+        return Result<Product>.Success(product);
     }
 
-    public Task UpdateAsync(Domain.Entities.Product product)
+    public async Task<Result> UpdateAsync(Product product)
     {
+        var exists = await _context.Products.AnyAsync(p => p.Id == product.Id);
+        if (!exists)
+            return Result.Failure($"Product with ID {product.Id} not found");
+
         _context.Products.Update(product);
-        return Task.CompletedTask;
+        return Result.Success();
     }
 }

@@ -15,7 +15,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // DbContext with migrations in Infrastructure
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+builder.Services.AddDbContext<ProductDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),
         sqlOptions => sqlOptions.MigrationsAssembly("Product.Infrastructure")
@@ -53,7 +53,7 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
-        var dbContext = services.GetRequiredService<ApplicationDbContext>();
+        var dbContext = services.GetRequiredService<ProductDbContext>();
         dbContext.Database.Migrate();
     }
     catch (Exception ex)

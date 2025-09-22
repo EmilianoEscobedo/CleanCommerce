@@ -17,9 +17,14 @@ public class ProductController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<ProductDto>>> GetAllProducts()
     {
         var result = await _productService.GetAllProductsAsync();
+
+        if (result.IsFailure)
+            return BadRequest(result.Errors);
+
         return Ok(result.Value);
     }
 

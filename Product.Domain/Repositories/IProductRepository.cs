@@ -1,13 +1,16 @@
+using Product.Domain.Common;
+
 namespace Product.Domain.Repositories;
+using Entities;
 
 public interface IProductRepository
 {
-    Task<Entities.Product?> GetByIdAsync(int id);
-    Task<IEnumerable<Entities.Product>> GetAllAsync();
-    Task<IEnumerable<Entities.Product>> GetAllPaginatedAsync(int page, int pageSize);
-    Task<int> AddAsync(Entities.Product product);
-    Task UpdateAsync(Entities.Product product);
-    Task DeleteAsync(int id);
-    Task<bool> ExistsAsync(int id);
-    Task<int> SaveChangesAsync();
+    Task<Result<Product>> GetByIdAsync(int id);
+    Task<Result<IEnumerable<Product>>> GetAllAsync();
+    Task<Result<IEnumerable<Product>>> GetAllPaginatedAsync(int page, int pageSize);
+    Task<Result<Product>> AddAsync(Product product);
+    Task<Result> UpdateAsync(Product product);
+    Task<Result> DeleteAsync(int id);
+    Task<Result<bool>> ExistsAsync(int id);
+    Task<Result<int>> SaveChangesAsync();
 }
