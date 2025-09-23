@@ -1,9 +1,9 @@
 using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
-using Order.Application.Services;
-using Order.Infrastructure.Settings;
+using Customer.Application.Services;
+using Customer.Infrastructure.Settings;
 
-namespace Order.Infrastructure.Services;
+namespace Customer.Infrastructure.Services;
 
 public class SecurityService : ISecurityService
 {

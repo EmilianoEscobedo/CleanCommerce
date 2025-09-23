@@ -1,6 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
+using Order.API.Extensions;
 using Order.API.Middlewares;
 using Order.Application.DTOs;
 using Order.Application.Mapping;
@@ -8,41 +8,17 @@ using Order.Application.Services;
 using Order.Application.Validators;
 using Order.Domain.Repositories;
 using Order.Infrastructure.Data;
-using Order.Infrastructure.ExternalService;
 using Order.Infrastructure.Repositories;
 using Order.Infrastructure.Services;
+using Order.Infrastructure.Settings;
 using Order.Infrastructure.UnitOfWork;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new() { Title = "Order API", Version = "v1" });
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-    });
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
-});
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerDocumentation();
 
 // DbContext with migrations in Infrastructure
 builder.Services.AddDbContext<OrderDbContext>(options =>
@@ -58,26 +34,15 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 // Application services
 builder.Services.Configure<ClientSettings>(
     builder.Configuration.GetSection("ClientSettings"));
+
 builder.Services.AddHttpClient<IProductService, ProductService>()
-    .ConfigurePrimaryHttpMessageHandler(() => 
-        new HttpClientHandler
-        {
-            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-        });
+    .ConfigureDevCertificateValidation(builder.Environment);
 
 builder.Services.AddHttpClient<ICustomerService, CustomerService>()
-    .ConfigurePrimaryHttpMessageHandler(() => 
-        new HttpClientHandler
-        {
-            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-        });
+    .ConfigureDevCertificateValidation(builder.Environment);
 
 builder.Services.AddHttpClient<ISecurityService, SecurityService>()
-    .ConfigurePrimaryHttpMessageHandler(() => 
-        new HttpClientHandler
-        {
-            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-        });
+    .ConfigureDevCertificateValidation(builder.Environment);
 
 builder.Services.AddScoped<IOrderService, OrderService>();
 
@@ -92,8 +57,7 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerDocumentation();
 }
 
 app.UseHttpsRedirection();

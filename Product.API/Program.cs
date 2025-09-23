@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Product.API.Extensions;
 using Product.Application.DTOs;
 using Product.Application.Mappings;
 using Product.Application.Services;
@@ -7,12 +8,14 @@ using Product.Application.Validators;
 using Product.Domain.Repositories;
 using Product.Infrastructure.Data;
 using Product.Infrastructure.Repositories;
+using Product.Infrastructure.Services;
+using Product.Infrastructure.Settings;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerDocumentation();
 
 // DbContext with migrations in Infrastructure
 builder.Services.AddDbContext<ProductDbContext>(options =>
@@ -25,6 +28,12 @@ builder.Services.AddDbContext<ProductDbContext>(options =>
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
 // Application services
+builder.Services.Configure<ClientSettings>(
+    builder.Configuration.GetSection("ClientSettings"));
+
+builder.Services.AddHttpClient<ISecurityService, SecurityService>()
+    .ConfigureDevCertificateValidation(builder.Environment);
+
 builder.Services.AddScoped<IProductService, ProductService>();
 
 // Validators
@@ -39,8 +48,7 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerDocumentation();
 }
 
 app.UseHttpsRedirection();
