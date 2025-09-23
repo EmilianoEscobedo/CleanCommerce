@@ -1,6 +1,6 @@
 namespace WebClient.Application.DTOs.Security;
 
-public class UserDto
+public class RegisterUserResponseDto
 {
     public int Id { get; set; }
     public string Email { get; set; }

@@ -75,12 +75,6 @@
         {
             await JS.InvokeVoidAsync("localStorage.setItem", "jwtToken", loginResult.Value.Token);
             Navigation.NavigateTo("/home", true);
-            Console.WriteLine("Login response: " + loginResult.Value);
-        }
-        else
-        {
-            // show friendly error
-            Console.WriteLine("Login failed: " + loginResult.Errors);
         }
     }
 

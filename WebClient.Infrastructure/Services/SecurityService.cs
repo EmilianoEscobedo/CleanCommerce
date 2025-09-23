@@ -1,5 +1,4 @@
 using System.Net.Http.Json;
-using System.Text.Json;
 using Microsoft.Extensions.Options;
 using WebClient.Application.DTOs.Security;
 using WebClient.Application.Services;
@@ -19,23 +18,20 @@ public class SecurityService : ISecurityService
         _settings = settings.Value;
     }
 
-    public async Task<Result<UserDto>> RegisterAsync(RegisterUserRequestDto request)
+    public async Task<Result<RegisterUserResponseDto>> RegisterAsync(RegisterUserRequestDto request)
     {
         var response = await _httpClient.PostAsJsonAsync($"{_settings.SecurityBaseUrl}/register", request);
         if (!response.IsSuccessStatusCode)
-            return Result<UserDto>.Failure($"Failed to register user. Status: {response.StatusCode}");
+            return Result<RegisterUserResponseDto>.Failure($"Failed to register user. Status: {response.StatusCode}");
 
-        var user = await response.Content.ReadFromJsonAsync<UserDto>();
+        var user = await response.Content.ReadFromJsonAsync<RegisterUserResponseDto>();
         return user is null
-            ? Result<UserDto>.Failure("User deserialization failed.")
-            : Result<UserDto>.Success(user);
+            ? Result<RegisterUserResponseDto>.Failure("User deserialization failed.")
+            : Result<RegisterUserResponseDto>.Success(user);
     }
 
     public async Task<Result<LoginResponseDto>> LoginAsync(LoginRequestDto request)
     {
-        var json = JsonSerializer.Serialize(request);
-        Console.WriteLine(json);
-
         var response = await _httpClient.PostAsJsonAsync($"{_settings.SecurityBaseUrl}/login", request);
         
         if (!response.IsSuccessStatusCode)
