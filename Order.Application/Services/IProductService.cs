@@ -5,6 +5,6 @@ namespace Order.Application.Services;
 
 public interface IProductService
 {
-    Task<Result<ProductDto>> GetProductAsync(int id);
+    Task<Result<ProductResponseDto>> GetProductAsync(int id);
     Task<Result> UpdateProductStockAsync(int productId, int quantity);
 }

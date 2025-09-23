@@ -51,28 +51,9 @@ public class ProductRepository : IProductRepository
         return Result.Success();
     }
 
-    public async Task<Result<bool>> ExistsAsync(int id)
-    {
-        var exists = await _context.Products.AnyAsync(p => p.Id == id);
-        return Result<bool>.Success(exists);
-    }
-
     public async Task<Result<IEnumerable<Product>>> GetAllAsync()
     {
         var products = await _context.Products.ToListAsync();
-        return Result<IEnumerable<Product>>.Success(products);
-    }
-
-    public async Task<Result<IEnumerable<Product>>> GetAllPaginatedAsync(int page, int pageSize)
-    {
-        if (page <= 0 || pageSize <= 0)
-            return Result<IEnumerable<Product>>.Failure("Invalid pagination parameters");
-
-        var products = await _context.Products
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
-
         return Result<IEnumerable<Product>>.Success(products);
     }
 

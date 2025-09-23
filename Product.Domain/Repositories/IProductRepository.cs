@@ -7,10 +7,8 @@ public interface IProductRepository
 {
     Task<Result<Product>> GetByIdAsync(int id);
     Task<Result<IEnumerable<Product>>> GetAllAsync();
-    Task<Result<IEnumerable<Product>>> GetAllPaginatedAsync(int page, int pageSize);
     Task<Result<Product>> AddAsync(Product product);
     Task<Result> UpdateAsync(Product product);
     Task<Result> DeleteAsync(int id);
-    Task<Result<bool>> ExistsAsync(int id);
     Task<Result<int>> SaveChangesAsync();
 }
