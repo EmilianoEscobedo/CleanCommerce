@@ -10,14 +10,14 @@ public class CustomerService : ICustomerService
 {
     private readonly ICustomerRepository _customerRepository;
     private readonly IMapper _mapper;
-    private readonly IValidator<CreateCustomerDto> _createValidator;
-    private readonly IValidator<UpdateCustomerDto> _updateValidator;
+    private readonly IValidator<CreateCustomerRequestDto> _createValidator;
+    private readonly IValidator<UpdateCustomerRequestDto> _updateValidator;
 
     public CustomerService(
         ICustomerRepository customerRepository,
         IMapper mapper,
-        IValidator<CreateCustomerDto> createValidator,
-        IValidator<UpdateCustomerDto> updateValidator)
+        IValidator<CreateCustomerRequestDto> createValidator,
+        IValidator<UpdateCustomerRequestDto> updateValidator)
     {
         _customerRepository = customerRepository;
         _mapper = mapper;
@@ -45,16 +45,23 @@ public class CustomerService : ICustomerService
         return Result<CustomerDto>.Success(customerDto);
     }
 
-    public async Task<Result<CustomerDto>> CreateCustomerAsync(CreateCustomerDto createCustomerDto)
+    public async Task<Result<CustomerDto>> CreateCustomerAsync(CreateCustomerRequestDto createCustomerDto)
     {
         var validationResult = await _createValidator.ValidateAsync(createCustomerDto);
         if (!validationResult.IsValid)
             return Result<CustomerDto>.Failure(validationResult.Errors.Select(e => e.ErrorMessage).ToList());
 
+        var address = new Domain.Entities.Address(
+            createCustomerDto.Address.Country,
+            createCustomerDto.Address.City,
+            createCustomerDto.Address.Street,
+            createCustomerDto.Address.Number
+        );
+
         var customer = new Domain.Entities.Customer(
             createCustomerDto.Name,
             createCustomerDto.Email,
-            createCustomerDto.Address ?? string.Empty
+            address
         );
 
         var addResult = await _customerRepository.AddAsync(customer);
@@ -69,7 +76,8 @@ public class CustomerService : ICustomerService
         return Result<CustomerDto>.Success(customerDto);
     }
 
-    public async Task<Result<CustomerDto>> UpdateCustomerAsync(int id, UpdateCustomerDto updateCustomerDto)
+
+    public async Task<Result<CustomerDto>> UpdateCustomerAsync(int id, UpdateCustomerRequestDto updateCustomerDto)
     {
         var validationResult = await _updateValidator.ValidateAsync(updateCustomerDto);
         if (!validationResult.IsValid)
@@ -80,10 +88,18 @@ public class CustomerService : ICustomerService
             return Result<CustomerDto>.Failure(existingResult.Errors);
 
         var existingCustomer = existingResult.Value;
+
+        var address = new Domain.Entities.Address(
+            updateCustomerDto.Address.Country,
+            updateCustomerDto.Address.City,
+            updateCustomerDto.Address.Street,
+            updateCustomerDto.Address.Number
+        );
+
         existingCustomer.UpdateDetails(
             updateCustomerDto.Name,
             updateCustomerDto.Email,
-            updateCustomerDto.Address
+            address
         );
 
         var updateResult = await _customerRepository.UpdateAsync(existingCustomer);

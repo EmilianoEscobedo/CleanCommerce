@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 using Order.Application.DTOs;
 using Order.Application.Services;
 using Order.Domain.Common;
-using Order.Infrastructure.ExternalService;
+using Order.Infrastructure.Settings;
 
 namespace Order.Infrastructure.Services;
 
@@ -18,15 +18,15 @@ public class CustomerService : ICustomerService
         _settings = settings.Value;
     }
 
-    public async Task<Result<CustomerDto>> GetCustomerAsync(int id)
+    public async Task<Result<CustomerResponseDto>> GetCustomerAsync(int id)
     {
         var response = await _httpClient.GetAsync($"{_settings.CustomerBaseUrl}/{id}");
         if (!response.IsSuccessStatusCode)
-            return Result<CustomerDto>.Failure($"Failed to fetch customer {id}. Status: {response.StatusCode}");
+            return Result<CustomerResponseDto>.Failure($"Failed to fetch customer {id}. Status: {response.StatusCode}");
 
-        var customer = await response.Content.ReadFromJsonAsync<CustomerDto>();
+        var customer = await response.Content.ReadFromJsonAsync<CustomerResponseDto>();
         return customer is null 
-            ? Result<CustomerDto>.Failure("Customer deserialization failed.") 
-            : Result<CustomerDto>.Success(customer);
+            ? Result<CustomerResponseDto>.Failure("Customer deserialization failed.") 
+            : Result<CustomerResponseDto>.Success(customer);
     }
 }

@@ -5,5 +5,5 @@ namespace Order.Application.Services;
 
 public interface ICustomerService
 {
-    Task<Result<CustomerDto>> GetCustomerAsync(int id);
+    Task<Result<CustomerResponseDto>> GetCustomerAsync(int id);
 }
