@@ -1,4 +1,4 @@
-namespace Order.Infrastructure.ExternalService;
+namespace Order.Infrastructure.Settings;
 
 public class ClientSettings
 {

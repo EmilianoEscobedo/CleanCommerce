@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 using Order.Application.DTOs;
 using Order.Application.Services;
 using Order.Domain.Common;
-using Order.Infrastructure.ExternalService;
+using Order.Infrastructure.Settings;
 
 namespace Order.Infrastructure.Services;
 
@@ -18,16 +18,16 @@ public class ProductService : IProductService
         _settings = settings.Value;
     }
 
-    public async Task<Result<ProductDto>> GetProductAsync(int id)
+    public async Task<Result<ProductResponseDto>> GetProductAsync(int id)
     {
         var response = await _httpClient.GetAsync($"{_settings.ProductBaseUrl}/{id}");
         if (!response.IsSuccessStatusCode)
-            return Result<ProductDto>.Failure($"Failed to fetch product {id}. Status: {response.StatusCode}");
+            return Result<ProductResponseDto>.Failure($"Failed to fetch product {id}. Status: {response.StatusCode}");
 
-        var product = await response.Content.ReadFromJsonAsync<ProductDto>();
+        var product = await response.Content.ReadFromJsonAsync<ProductResponseDto>();
         return product is null 
-            ? Result<ProductDto>.Failure("Product deserialization failed.") 
-            : Result<ProductDto>.Success(product);
+            ? Result<ProductResponseDto>.Failure("Product deserialization failed.") 
+            : Result<ProductResponseDto>.Success(product);
     }
 
     public async Task<Result> UpdateProductStockAsync(int productId, int quantity)
