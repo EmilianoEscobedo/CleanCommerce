@@ -1,0 +1,96 @@
+@layout EmptyLayout
+@page "/login"
+@using WebClient.API.Components.Layout
+@using WebClient.Application.DTOs.Security
+@using WebClient.Application.Services
+@inject ISecurityService SecurityService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>Login</PageTitle>
+
+<div class="vh-100 d-flex justify-content-center align-items-center" style="background-image: url('images/background-logo.jpg'); background-size: cover; background-position: center;">
+    <div class="card shadow-lg" style="max-width: 400px; width: 100%; background-color: rgba(255,255,255,0.9); backdrop-filter: blur(10px);">
+        <div class="card-body p-4">
+            <h2 class="card-title text-center mb-4">@(_isRegistering ? "Register" : "Welcome back")</h2>
+
+            @if (_isRegistering)
+            {
+                <EditForm FormName="registerForm" Model="@_registerModel" OnValidSubmit="@HandleRegister">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <InputText @bind-Value="_registerModel.Email" class="form-control" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <InputText @bind-Value="_registerModel.Password" type="password" class="form-control" />
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">Register</button>
+                </EditForm>
+            }
+            else
+            {
+                <EditForm FormName="loginForm" Model="@_loginModel" OnValidSubmit="@HandleLogin" @onsubmit:preventDefault="true">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <InputText @bind-Value="_loginModel.Email" class="form-control" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <InputText @bind-Value="_loginModel.Password" type="password" class="form-control" />
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">Login</button>
+                </EditForm>
+            }
+
+            <div class="text-center mt-3">
+                <button type="button" class="btn btn-link" @onclick="@(() => { _isRegistering = !_isRegistering; })">
+                    @(_isRegistering ? "Already have an account? Login" : "Don't have an account? Register")
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool _isRegistering;
+    private LoginRequestDto _loginModel = new LoginRequestDto();
+    private RegisterUserRequestDto _registerModel = new RegisterUserRequestDto();
+
+    private async Task HandleLogin()
+    {
+        var loginResult = await SecurityService.LoginAsync(_loginModel);
+        if (loginResult.IsSuccess)
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", "jwtToken", loginResult.Value.Token);
+            Navigation.NavigateTo("/home", true);
+            Console.WriteLine("Login response: " + loginResult.Value);
+        }
+        else
+        {
+            // show friendly error
+            Console.WriteLine("Login failed: " + loginResult.Errors);
+        }
+    }
+
+    private async Task HandleRegister()
+    {
+        var registerResult = await SecurityService.RegisterAsync(_registerModel);
+        if (registerResult.IsSuccess)
+        {
+            _isRegistering = false;
+            _loginModel = new LoginRequestDto { Email = _registerModel.Email };
+        }
+    }
+}
