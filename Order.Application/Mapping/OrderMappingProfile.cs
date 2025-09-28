@@ -12,12 +12,12 @@ public class OrderMappingProfile : Profile
             .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.Items));
         CreateMap<OrderItem, OrderItemResponseDto>();
         
-        CreateMap<CreateOrderDto, Order>()
+        CreateMap<CreateOrderRequestDto, Order>()
             .ForMember(dest => dest.CustomerName, opt => opt.Ignore()) 
             .ForMember(dest => dest.Total, opt => opt.Ignore())
             .ForMember(dest => dest.Items, opt => opt.Ignore());
 
-        CreateMap<OrderItemDto, OrderItem>()
+        CreateMap<CreateOrderItemRequestDto, OrderItem>()
             .ForMember(dest => dest.Subtotal, opt => opt.Ignore());
     }
 }
