@@ -1,0 +1,357 @@
+@page "/orders"
+@using WebClient.Application.DTOs.Order
+@using WebClient.Application.Services
+@using Blazored.Toast.Services
+@using WebClient.Application.DTOs.Customer
+@using WebClient.Application.DTOs.Product
+@inject IOrderService OrderService
+@inject IProductService ProductService
+@inject ICustomerService CustomerService
+@inject IToastService ToastService
+@inject ILogger<Orders> Logger
+
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Orders</PageTitle>
+
+@if (orders == null)
+{
+    <div class="container mt-4">
+        <p><em>Loading orders...</em></p>
+    </div>
+}
+else
+{
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1>Orders</h1>
+            <button class="btn btn-success" @onclick="OpenCreateModal">Create New Order</button>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Customer</th>
+                        <th>Total</th>
+                        <th>Order Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (orders.Any())
+                    {
+                        @foreach (var order in orders)
+                        {
+                            <tr>
+                                <td>@order.Id</td>
+                                <td>@order.CustomerName</td>
+                                <td>$@order.Total.ToString("F2")</td>
+                                <td>@order.OrderDate.ToShortDateString()</td>
+                                <td>
+                                    <button class="btn btn-info btn-sm me-1" @onclick="() => ViewItems(order)">View Items</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center">No orders available.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@if (showItemsModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Order Items</h5>
+                    <button type="button" class="btn-close" @onclick="CloseItemsModal"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Unit Price</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in selectedOrder.Items)
+                            {
+                                <tr>
+                                    <td>@item.ProductName</td>
+                                    <td>@item.Quantity</td>
+                                    <td>$@item.UnitPrice.ToString("F2")</td>
+                                    <td>$@item.Subtotal.ToString("F2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseItemsModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showCreateModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Order</h5>
+                    <button type="button" class="btn-close" @onclick="CloseCreateModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="createOrder">
+                        <div class="mb-3">
+                            <label for="customerId" class="form-label">Customer</label>
+                            <InputSelect id="customerId" class="form-select" @bind-Value="createOrder.CustomerId">
+                                <option value="">Select a customer</option>
+                                @foreach (var customer in customers)
+                                {
+                                    <option value="@customer.Id">@customer.Name</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => createOrder.CustomerId)" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Order Items</label>
+                            <div class="row mb-2">
+                                <div class="col-md-5">
+                                    <InputSelect class="form-select" @bind-Value="selectedProductId">
+                                        <option value="">Select product</option>
+                                        @foreach (var product in products)
+                                        {
+                                            <option value="@product.Id">@product.Name (Stock: @product.StockQuantity)</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                                <div class="col-md-3">
+                                    <InputNumber class="form-control" @bind-Value="selectedQuantity" min="1" />
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="button" class="btn btn-primary" @onclick="AddItem">Add Item</button>
+                                </div>
+                            </div>
+                            @if (createOrder.Items.Any())
+                            {
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Product</th>
+                                            <th>Quantity</th>
+                                            <th>Price</th>
+                                            <th>Subtotal</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in createOrder.Items)
+                                        {
+                                            <tr>
+                                                <td>@(products.FirstOrDefault(p => p.Id == item.ProductId)?.Name ?? "")</td>
+                                                <td>@item.Quantity</td>
+                                                <td>$@(products.FirstOrDefault(p => p.Id == item.ProductId)?.Price.ToString("F2") ?? "0.00")</td>
+                                                <td>@((item.Quantity * (products.FirstOrDefault(p => p.Id == item.ProductId)?.Price ?? 0)).ToString("F2"))</td>
+                                                <td>
+                                                    <button type="button" class="btn btn-danger btn-sm" @onclick="() => RemoveItem(item.ProductId)">Remove</button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                            else
+                            {
+                                <p class="text-muted">No items added yet.</p>
+                            }
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseCreateModal">Cancel</button>
+                            <button type="button" class="btn btn-primary" @onclick="HandleCreateOrder">Create Order</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private IEnumerable<OrderResponseDto>? orders;
+    private IEnumerable<ProductResponseDto>? products;
+    private IEnumerable<CustomerResponseDto>? customers;
+    private CreateOrderRequestDto createOrder = new();
+    private int selectedProductId;
+    private int selectedQuantity;
+    private OrderResponseDto? selectedOrder;
+    private bool showCreateModal;
+    private bool showItemsModal;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadData();
+            Logger.LogInformation("Orders page loaded successfully");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError("Error loading orders");
+            Logger.LogError(ex, "Exception loading orders data");
+            orders = Enumerable.Empty<OrderResponseDto>();
+            products = Enumerable.Empty<ProductResponseDto>();
+            customers = Enumerable.Empty<CustomerResponseDto>();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        var productResult = await ProductService.GetAllProductsAsync();
+        if (productResult.IsSuccess)
+        {
+            products = productResult.Value;
+        }
+        else
+        {
+            ToastService.ShowError("Error loading products");
+            Logger.LogError("Failed to load products: {Errors}", string.Join(", ", productResult.Errors));
+            products = Enumerable.Empty<ProductResponseDto>();
+        }
+
+        var customerResult = await CustomerService.GetAllCustomersAsync();
+        if (customerResult.IsSuccess)
+        {
+            customers = customerResult.Value;
+        }
+        else
+        {
+            ToastService.ShowError("Error loading customers");
+            Logger.LogError("Failed to load customers: {Errors}", string.Join(", ", customerResult.Errors));
+            customers = Enumerable.Empty<CustomerResponseDto>();
+        }
+
+        await LoadOrders();
+    }
+
+    private async Task LoadOrders()
+    {
+        var result = await OrderService.GetAllOrdersAsync();
+        if (result.IsSuccess)
+        {
+            orders = result.Value;
+        }
+        else
+        {
+            ToastService.ShowError("Error loading orders");
+            Logger.LogError("Failed to load orders: {Errors}", string.Join(", ", result.Errors));
+            orders = Enumerable.Empty<OrderResponseDto>();
+        }
+    }
+
+    private void AddItem()
+    {
+        if (selectedProductId == 0 || selectedQuantity <= 0) return;
+
+        var product = products.FirstOrDefault(p => p.Id == selectedProductId);
+        if (product == null || selectedQuantity > product.StockQuantity)
+        {
+            ToastService.ShowWarning("Quantity exceeds available stock.");
+            return;
+        }
+
+        var existingItem = createOrder.Items.FirstOrDefault(i => i.ProductId == selectedProductId);
+        if (existingItem != null)
+        {
+            existingItem.Quantity += selectedQuantity;
+            if (existingItem.Quantity > product.StockQuantity)
+            {
+                ToastService.ShowWarning("Total quantity exceeds available stock.");
+                existingItem.Quantity = product.StockQuantity;
+            }
+        }
+        else
+        {
+            createOrder.Items.Add(new OrderItemDto { ProductId = selectedProductId, Quantity = selectedQuantity });
+        }
+
+        selectedProductId = 0;
+        selectedQuantity = 0;
+        StateHasChanged();
+    }
+
+    private void RemoveItem(int productId)
+    {
+        createOrder.Items.RemoveAll(i => i.ProductId == productId);
+        StateHasChanged();
+    }
+
+    private void OpenCreateModal()
+    {
+        createOrder = new CreateOrderRequestDto();
+        selectedProductId = 0;
+        selectedQuantity = 0;
+        showCreateModal = true;
+    }
+
+    private void CloseCreateModal()
+    {
+        showCreateModal = false;
+    }
+
+    private async Task HandleCreateOrder()
+    {
+        if (createOrder.CustomerId == 0)
+        {
+            ToastService.ShowError("Please select a customer.");
+            return;
+        }
+
+        if (!createOrder.Items.Any())
+        {
+            ToastService.ShowError("Please add at least one item to the order.");
+            return;
+        }
+
+        var result = await OrderService.CreateOrderAsync(createOrder);
+        if (result.IsSuccess)
+        {
+            CloseCreateModal();
+            await LoadOrders();
+            StateHasChanged();
+            ToastService.ShowSuccess("Order created successfully");
+            Logger.LogInformation("Order created successfully");
+        }
+        else
+        {
+            ToastService.ShowError("Failed to create order");
+            Logger.LogError("Failed to create order: {Errors}", string.Join(", ", result.Errors));
+        }
+    }
+
+    private void ViewItems(OrderResponseDto order)
+    {
+        selectedOrder = order;
+        showItemsModal = true;
+    }
+
+    private void CloseItemsModal()
+    {
+        showItemsModal = false;
+        selectedOrder = null;
+    }
+}
