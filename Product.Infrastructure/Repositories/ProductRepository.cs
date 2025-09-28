@@ -47,7 +47,11 @@ public class ProductRepository : IProductRepository
         if (product == null)
             return Result.Failure($"Product with ID {id} not found");
 
-        _context.Products.Remove(product);
+        product.IsDeleted = true;
+        product.UpdatedDate = DateTime.UtcNow;
+
+        _context.Products.Update(product); 
+
         return Result.Success();
     }
 

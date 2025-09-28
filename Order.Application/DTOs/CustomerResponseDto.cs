@@ -9,3 +9,11 @@ public class CustomerResponseDto
     public DateTime RegistrationDate { get; set; }
     public DateTime? UpdatedDate { get; set; }
 }
+
+public class AddressDto
+{
+    public string Country { get; set; }
+    public string City { get; set; }
+    public string Street { get; set; }
+    public int Number { get; set; }
+}

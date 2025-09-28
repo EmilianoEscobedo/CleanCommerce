@@ -1,6 +1,11 @@
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Customer.Application.DTOs;
-using Customer.Application.Services;
+using Customer.Application.UseCases.Customer.Queries.ListCustomers;
+using Customer.Application.UseCases.Customer.Queries.ListCustomerById;
+using Customer.Application.UseCases.Customer.Commands.CreateCustomer;
+using Customer.Application.UseCases.Customer.Commands.UpdateCustomer;
+using Customer.Application.UseCases.Customer.Commands.DeleteCustomer;
 
 namespace Customer.API.Controllers;
 
@@ -8,65 +13,87 @@ namespace Customer.API.Controllers;
 [ApiController]
 public class CustomerController : ControllerBase
 {
-    private readonly ICustomerService _customerService;
+    private readonly IMediator _mediator;
+    private readonly ILogger<CustomerController> _logger;
 
-    public CustomerController(ICustomerService customerService)
+    public CustomerController(IMediator mediator, ILogger<CustomerController> logger)
     {
-        _customerService = customerService;
+        _mediator = mediator;
+        _logger = logger;
     }
 
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<IEnumerable<CustomerDto>>> GetAllProducts()
+    public async Task<ActionResult<ListCustomersResponse>> GetAllCustomers()
     {
-        var result = await _customerService.GetAllCustomersAsync();
+        _logger.LogInformation("Fetching all customers");
+        var result = await _mediator.Send(new ListCustomersQuery());
 
         if (result.IsFailure)
+        {
+            _logger.LogWarning("Failed to fetch customers: {Errors}", result.Errors);
             return BadRequest(result.Errors);
+        }
 
-        return Ok(result.Value);
+        return Ok(result.Value.Customers);
     }
 
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<CustomerDto>> GetCustomerById(int id)
+    public async Task<ActionResult<ListCustomerByIdResponse>> GetCustomerById(int id)
     {
-        var result = await _customerService.GetCustomerByIdAsync(id);
-        if (!result.IsSuccess)
+        _logger.LogInformation("Fetching customer with Id {Id}", id);
+        var result = await _mediator.Send(new ListCustomerByIdQuery(id));
+
+        if (result.IsFailure)
         {
+            _logger.LogWarning("Customer with Id {Id} not found", id);
             return NotFound(result.Errors);
         }
+
         return Ok(result.Value);
     }
 
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<CustomerDto>> CreateCustomer([FromBody] CreateCustomerRequestDto createCustomerDto)
+    public async Task<ActionResult<CreateCustomerResponse>> CreateCustomer([FromBody] CreateCustomerRequestDto createCustomerDto)
     {
-        var result = await _customerService.CreateCustomerAsync(createCustomerDto);
-        if (!result.IsSuccess)
+        _logger.LogInformation("Creating new customer {@Customer}", createCustomerDto);
+        var result = await _mediator.Send(new CreateCustomerCommand(createCustomerDto));
+
+        if (result.IsFailure)
         {
+            _logger.LogWarning("Failed to create customer: {Errors}", result.Errors);
             return BadRequest(result.Errors);
         }
-        return CreatedAtAction(nameof(GetCustomerById), new { id = result.Value.Id }, result.Value);
+
+        return CreatedAtAction(nameof(GetCustomerById), new { id = result.Value.Customer.Id }, result.Value);
     }
 
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<CustomerDto>> UpdateCustomer(int id, [FromBody] UpdateCustomerRequestDto updateCustomerDto)
+    public async Task<ActionResult<UpdateCustomerResponse>> UpdateCustomer(int id, [FromBody] UpdateCustomerRequestDto updateCustomerDto)
     {
-        var result = await _customerService.UpdateCustomerAsync(id, updateCustomerDto);
-        if (!result.IsSuccess)
+        _logger.LogInformation("Updating customer with Id {Id}", id);
+        var result = await _mediator.Send(new UpdateCustomerCommand(id, updateCustomerDto));
+
+        if (result.IsFailure)
         {
             if (result.Errors.Any(e => e.Contains("not found")))
+            {
+                _logger.LogWarning("Customer with Id {Id} not found for update", id);
                 return NotFound(result.Errors);
+            }
+
+            _logger.LogWarning("Failed to update customer with Id {Id}: {Errors}", id, result.Errors);
             return BadRequest(result.Errors);
         }
+
         return Ok(result.Value);
     }
 
@@ -75,11 +102,15 @@ public class CustomerController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> DeleteCustomer(int id)
     {
-        var result = await _customerService.DeleteCustomerAsync(id);
-        if (!result.IsSuccess)
+        _logger.LogInformation("Deleting customer with Id {Id}", id);
+        var result = await _mediator.Send(new DeleteCustomerCommand(id));
+
+        if (result.IsFailure)
         {
+            _logger.LogWarning("Failed to delete customer with Id {Id}: {Errors}", id, result.Errors);
             return NotFound(result.Errors);
         }
+
         return NoContent();
     }
 }

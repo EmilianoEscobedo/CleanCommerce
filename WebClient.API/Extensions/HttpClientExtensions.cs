@@ -2,7 +2,7 @@ namespace WebClient.API.Extensions;
 
 public static class HttpClientExtensions
 {
-    public static void ConfigureDevCertificateValidation(
+    public static IHttpClientBuilder ConfigureDevCertificateValidation(
         this IHttpClientBuilder builder,
         IWebHostEnvironment env)
     {
@@ -15,5 +15,7 @@ public static class HttpClientExtensions
                         HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
                 });
         }
+
+        return builder; 
     }
 }

@@ -32,7 +32,7 @@ public class ProductService : IProductService
 
     public async Task<Result> UpdateProductStockAsync(int productId, int quantity)
     {
-        var updateDto = new UpdateProductStockDto { Quantity = quantity };
+        var updateDto = new UpdateProductStockRequestDto() { Quantity = quantity };
         var response = await _httpClient.PatchAsJsonAsync($"{_settings.ProductBaseUrl}/{productId}/stock", updateDto);
 
         return !response.IsSuccessStatusCode

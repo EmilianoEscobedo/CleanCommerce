@@ -25,7 +25,6 @@ public class ProductService : IProductService
         if (!response.IsSuccessStatusCode)
             return Result<IEnumerable<ProductResponseDto>>.Failure(
                 $"Failed to fetch products. Status: {response.StatusCode}");
-
         var products = await response.Content.ReadFromJsonAsync<IEnumerable<ProductResponseDto>>();
         return products is null
             ? Result<IEnumerable<ProductResponseDto>>.Failure("Products deserialization failed.")

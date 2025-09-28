@@ -35,6 +35,8 @@ public class ProductDbContext : DbContext
             
             entity.Property(e => e.CreatedDate)
                 .IsRequired();
+            
+            entity.HasQueryFilter(p => !p.IsDeleted);
         });
     }
 }

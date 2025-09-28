@@ -10,8 +10,3 @@ public class ProductResponseDto
     public DateTime CreatedDate { get; set; }
     public DateTime? UpdatedDate { get; set; }
 }
-
-public class UpdateProductStockDto
-{
-    public int Quantity { get; set; }
-}
