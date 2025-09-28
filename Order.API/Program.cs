@@ -50,11 +50,8 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.Configure<ClientSettings>(
     builder.Configuration.GetSection("ClientSettings"));
 
-builder.Services.AddHttpClient<IProductService, ProductService>()
-    .ConfigureDevCertificateValidation(builder.Environment);
-
-builder.Services.AddHttpClient<ICustomerService, CustomerService>()
-    .ConfigureDevCertificateValidation(builder.Environment);
+builder.Services.AddHttpClient<IProductService, ProductService>();
+builder.Services.AddHttpClient<ICustomerService, CustomerService>();
 
 // Validators
 builder.Services.AddScoped<IValidator<CreateOrderRequestDto>, CreateOrderDtoValidator>();
@@ -94,7 +91,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerDocumentation();
 }
 
-app.UseHttpsRedirection();
 app.MapControllers();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 

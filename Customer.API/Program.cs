@@ -78,7 +78,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerDocumentation();
 }
 
-app.UseHttpsRedirection();
 app.MapControllers();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 

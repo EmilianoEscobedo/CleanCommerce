@@ -53,7 +53,7 @@ public class CustomerController : ControllerBase
             return NotFound(result.Errors);
         }
 
-        return Ok(result.Value);
+        return Ok(result.Value.Customer);
     }
 
     [HttpPost]
@@ -94,7 +94,7 @@ public class CustomerController : ControllerBase
             return BadRequest(result.Errors);
         }
 
-        return Ok(result.Value);
+        return Ok(result.Value.Customer);
     }
 
     [HttpDelete("{id}")]

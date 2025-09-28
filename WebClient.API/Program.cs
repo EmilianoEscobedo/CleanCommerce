@@ -1,7 +1,6 @@
 using Blazored.Toast;
 using Serilog;
 using WebClient.API.Components;
-using WebClient.API.Extensions;
 using WebClient.Application.Services;
 using WebClient.Infrastructure.Services;
 using WebClient.Infrastructure.Settings;
@@ -29,14 +28,9 @@ builder.Services.AddRazorComponents()
 builder.Services.Configure<ClientSettings>(
     builder.Configuration.GetSection("ClientSettings"));
 
-builder.Services.AddHttpClient<ICustomerService, CustomerService>()
-    .ConfigureDevCertificateValidation(builder.Environment);
-
-builder.Services.AddHttpClient<IProductService, ProductService>()
-    .ConfigureDevCertificateValidation(builder.Environment);
-
-builder.Services.AddHttpClient<IOrderService, OrderService>()
-    .ConfigureDevCertificateValidation(builder.Environment);
+builder.Services.AddHttpClient<ICustomerService, CustomerService>();
+builder.Services.AddHttpClient<IProductService, ProductService>();
+builder.Services.AddHttpClient<IOrderService, OrderService>();
 
 var app = builder.Build();
 
@@ -47,7 +41,6 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
 
