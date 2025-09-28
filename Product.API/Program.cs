@@ -1,21 +1,34 @@
+using System.Reflection;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Product.API.Extensions;
+using Product.API.Middlewares;
+using Product.Application;
 using Product.Application.DTOs;
 using Product.Application.Mappings;
-using Product.Application.Services;
 using Product.Application.Validators;
 using Product.Domain.Repositories;
 using Product.Infrastructure.Data;
 using Product.Infrastructure.Repositories;
-using Product.Infrastructure.Services;
-using Product.Infrastructure.Settings;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerDocumentation();
+
+// Serilog
+builder.Logging.ClearProviders();
+
+var loggingConfig = new LoggerConfiguration()
+    .WriteTo.File("Logs/log.txt",
+        rollingInterval: RollingInterval.Day,
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {CorrelationId} {Level: u3}] {Username} {Message:lj}{NewLine}{Exception}")
+    .MinimumLevel.Information()
+    .CreateLogger();
+
+builder.Logging.AddSerilog(loggingConfig);
 
 // DbContext with migrations in Infrastructure
 builder.Services.AddDbContext<ProductDbContext>(options =>
@@ -27,15 +40,6 @@ builder.Services.AddDbContext<ProductDbContext>(options =>
 // Repository
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
-// Application services
-builder.Services.Configure<ClientSettings>(
-    builder.Configuration.GetSection("ClientSettings"));
-
-builder.Services.AddHttpClient<ISecurityService, SecurityService>()
-    .ConfigureDevCertificateValidation(builder.Environment);
-
-builder.Services.AddScoped<IProductService, ProductService>();
-
 // Validators
 builder.Services.AddScoped<IValidator<CreateProductDto>, CreateProductDtoValidator>();
 builder.Services.AddScoped<IValidator<UpdateProductDto>, UpdateProductDtoValidator>();
@@ -44,16 +48,15 @@ builder.Services.AddScoped<IValidator<UpdateProductStockDto>, UpdateProductStock
 // AutoMapper
 builder.Services.AddAutoMapper(typeof(ProductMappingProfile));
 
+// MediatR
+builder.Services.AddMediatR(config =>
+    {
+        config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
+        config.RegisterServicesFromAssembly(typeof(Register).Assembly);
+    }
+);
+
 var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwaggerDocumentation();
-}
-
-app.UseHttpsRedirection();
-app.UseAuthorization();
-app.MapControllers();
 
 // Run required db migrations on startup
 using (var scope = app.Services.CreateScope())
@@ -70,5 +73,14 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "An error occurred while migrating the database.");
     }
 }
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwaggerDocumentation();
+}
+
+app.UseHttpsRedirection();
+app.MapControllers();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.Run();

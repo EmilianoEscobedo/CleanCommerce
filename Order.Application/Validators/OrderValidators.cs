@@ -3,7 +3,7 @@ using Order.Application.DTOs;
 
 namespace Order.Application.Validators;
 
-public class CreateOrderDtoValidator : AbstractValidator<CreateOrderDto>
+public class CreateOrderDtoValidator : AbstractValidator<CreateOrderRequestDto>
 {
     public CreateOrderDtoValidator()
     {
@@ -13,7 +13,7 @@ public class CreateOrderDtoValidator : AbstractValidator<CreateOrderDto>
     }
 }
 
-public class OrderItemDtoValidator : AbstractValidator<OrderItemDto>
+public class OrderItemDtoValidator : AbstractValidator<CreateOrderItemRequestDto>
 {
     public OrderItemDtoValidator()
     {

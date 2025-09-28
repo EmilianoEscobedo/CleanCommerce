@@ -1,7 +1,9 @@
-using Microsoft.AspNetCore.Authorization;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Order.Application.DTOs;
-using Order.Application.Services;
+using Order.Application.UseCases.Order.Commands.CreateOrder;
+using Order.Application.UseCases.Order.Queries.ListOrderById;
+using Order.Application.UseCases.Order.Queries.ListOrders;
 
 namespace Order.API.Controllers;
 
@@ -9,11 +11,13 @@ namespace Order.API.Controllers;
 [ApiController]
 public class OrderController : ControllerBase
 {
-    private readonly IOrderService _orderService;
+    private readonly ISender _mediator;
+    private readonly ILogger<OrderController> _logger;
 
-    public OrderController(IOrderService orderService)
+    public OrderController(ISender mediator, ILogger<OrderController> logger)
     {
-        _orderService = orderService;
+        _mediator = mediator;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -21,12 +25,17 @@ public class OrderController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<OrderResponseDto>>> GetAllOrders()
     {
-        var result = await _orderService.GetAllOrdersAsync();
+        _logger.LogInformation("Fetching all orders");
+        var result = await _mediator.Send(new ListOrdersQuery());
 
         if (result.IsFailure)
+        {
+            _logger.LogWarning("Failed to fetch orders: {Errors}", string.Join(", ", result.Errors));
             return BadRequest(result.Errors);
+        }
 
-        return Ok(result.Value);
+        _logger.LogInformation("Successfully fetched {Count} orders", result.Value.Orders.Count());
+        return Ok(result.Value.Orders);
     }
 
     [HttpGet("{id}")]
@@ -34,22 +43,34 @@ public class OrderController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<OrderResponseDto>> GetOrderById(int id)
     {
-        var result = await _orderService.GetOrderByIdAsync(id);
-        if (result.IsFailure)
-            return NotFound(result.Errors);
+        _logger.LogInformation("Fetching order with ID {Id}", id);
+        var result = await _mediator.Send(new ListOrderByIdQuery(id));
 
-        return Ok(result.Value);
+        if (result.IsFailure)
+        {
+            _logger.LogWarning("Order with ID {Id} not found", id);
+            return NotFound(result.Errors);
+        }
+
+        _logger.LogInformation("Successfully fetched order with ID {Id}", id);
+        return Ok(result.Value.Order);
     }
 
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<OrderResponseDto>> CreateOrder([FromBody] CreateOrderDto createOrderDto)
+    public async Task<ActionResult<OrderResponseDto>> CreateOrder([FromBody] CreateOrderRequestDto createOrderRequestDto)
     {
-        var result = await _orderService.CreateOrderAsync(createOrderDto);
-        if (result.IsFailure)
-            return BadRequest(result.Errors);
+        _logger.LogInformation("Creating a new order for customer {CustomerId}", createOrderRequestDto.CustomerId);
+        var result = await _mediator.Send(new CreateOrderCommand(createOrderRequestDto));
 
-        return CreatedAtAction(nameof(GetOrderById), new { id = result.Value.Id }, result.Value);
+        if (result.IsFailure)
+        {
+            _logger.LogWarning("Failed to create order: {Errors}", string.Join(", ", result.Errors));
+            return BadRequest(result.Errors);
+        }
+
+        _logger.LogInformation("Order created successfully with ID {Id}", result.Value.Order.Id);
+        return CreatedAtAction(nameof(GetOrderById), new { id = result.Value.Order.Id }, result.Value.Order);
     }
 }

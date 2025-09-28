@@ -1,3 +1,5 @@
+using Blazored.Toast;
+using Serilog;
 using WebClient.API.Components;
 using WebClient.API.Extensions;
 using WebClient.Application.Services;
@@ -6,7 +8,20 @@ using WebClient.Infrastructure.Settings;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Serilog
+builder.Logging.ClearProviders();
+
+var loggingConfig = new LoggerConfiguration()
+    .WriteTo.File("Logs/log.txt",
+        rollingInterval: RollingInterval.Day,
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {CorrelationId} {Level: u3}] {Username} {Message:lj}{NewLine}{Exception}")
+    .MinimumLevel.Information()
+    .CreateLogger();
+
+builder.Logging.AddSerilog(loggingConfig);
+
 // Add services to the container.
+builder.Services.AddBlazoredToast();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
@@ -21,9 +36,6 @@ builder.Services.AddHttpClient<IProductService, ProductService>()
     .ConfigureDevCertificateValidation(builder.Environment);
 
 builder.Services.AddHttpClient<IOrderService, OrderService>()
-    .ConfigureDevCertificateValidation(builder.Environment);
-
-builder.Services.AddHttpClient<ISecurityService, SecurityService>()
     .ConfigureDevCertificateValidation(builder.Environment);
 
 var app = builder.Build();

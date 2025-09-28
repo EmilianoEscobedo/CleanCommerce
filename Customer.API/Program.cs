@@ -1,22 +1,34 @@
+using System.Reflection;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Customer.API.Extensions;
 using Customer.API.Middlewares;
+using Customer.Application;
 using Customer.Application.DTOs;
 using Customer.Application.Mappings;
-using Customer.Application.Services;
 using Customer.Application.Validators;
 using Customer.Domain.Repositories;
 using Customer.Infrastructure.Data;
 using Customer.Infrastructure.Repositories;
-using Customer.Infrastructure.Services;
-using Customer.Infrastructure.Settings;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerDocumentation();
+
+// Serilog
+builder.Logging.ClearProviders();
+
+var loggingConfig = new LoggerConfiguration()
+    .WriteTo.File("Logs/log.txt",
+        rollingInterval: RollingInterval.Day,
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {CorrelationId} {Level: u3}] {Username} {Message:lj}{NewLine}{Exception}")
+    .MinimumLevel.Information()
+    .CreateLogger();
+
+builder.Logging.AddSerilog(loggingConfig);
 
 // DbContext with migrations in Infrastructure
 builder.Services.AddDbContext<CustomerDbContext>(options =>
@@ -28,15 +40,6 @@ builder.Services.AddDbContext<CustomerDbContext>(options =>
 // Repository
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 
-// Application services
-builder.Services.AddScoped<ICustomerService, CustomerService>();
-
-builder.Services.Configure<ClientSettings>(
-    builder.Configuration.GetSection("ClientSettings"));
-
-builder.Services.AddHttpClient<ISecurityService, SecurityService>()
-    .ConfigureDevCertificateValidation(builder.Environment);
-
 // Validators
 builder.Services.AddScoped<IValidator<CreateCustomerRequestDto>, CreateCustomerDtoValidator>();
 builder.Services.AddScoped<IValidator<UpdateCustomerRequestDto>, UpdateCustomerDtoValidator>();
@@ -44,18 +47,15 @@ builder.Services.AddScoped<IValidator<UpdateCustomerRequestDto>, UpdateCustomerD
 // AutoMapper
 builder.Services.AddAutoMapper(typeof(CustomerMappingProfile));
 
+// MediatR
+builder.Services.AddMediatR(config =>
+    {
+        config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
+        config.RegisterServicesFromAssembly(typeof(Register).Assembly);
+    }
+);
+
 var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwaggerDocumentation();
-}
-
-app.UseHttpsRedirection();
-app.UseMiddleware<JwtValidationMiddleware>();
-app.UseAuthorization();
-
-app.MapControllers();
 
 // Run required db migrations on startup
 using (var scope = app.Services.CreateScope())
@@ -72,5 +72,14 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "An error occurred while migrating the database.");
     }
 }
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwaggerDocumentation();
+}
+
+app.UseHttpsRedirection();
+app.MapControllers();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.Run();
