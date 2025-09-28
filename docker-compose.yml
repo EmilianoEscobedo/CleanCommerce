@@ -1,0 +1,81 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Admin1234!"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql_data:/var/opt/mssql
+
+  customer-api:
+    build:
+      context: .
+      dockerfile: Customer.API/Dockerfile
+    container_name: customer-api
+    restart: unless-stopped
+    ports:
+      - "5000:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=CustomerDb;User Id=sa;Password=Admin1234!;TrustServerCertificate=true;MultipleActiveResultSets=true
+    depends_on:
+      - sqlserver
+
+  product-api:
+    build:
+      context: .
+      dockerfile: Product.API/Dockerfile
+    container_name: product-api
+    restart: unless-stopped
+    ports:
+      - "5002:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=ProductDb;User Id=sa;Password=Admin1234!;TrustServerCertificate=true;MultipleActiveResultSets=true
+    depends_on:
+      - sqlserver
+
+  order-api:
+    build:
+      context: .
+      dockerfile: Order.API/Dockerfile
+    container_name: order-api
+    restart: unless-stopped
+    ports:
+      - "5004:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=OrderDb;User Id=sa;Password=Admin1234!;TrustServerCertificate=true;MultipleActiveResultSets=true
+      - ClientSettings__CustomerBaseUrl=http://customer-api:80/api/customer
+      - ClientSettings__ProductBaseUrl=http://product-api:80/api/product
+    depends_on:
+      - sqlserver
+
+  webclient:
+    build:
+      context: .
+      dockerfile: WebClient.API/Dockerfile
+    container_name: webclient
+    restart: unless-stopped
+    ports:
+      - "5164:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ClientSettings__CustomerBaseUrl=http://customer-api:80/api/customer
+      - ClientSettings__ProductBaseUrl=http://product-api:80/api/product
+      - ClientSettings__OrderBaseUrl=http://order-api:80/api/order
+    depends_on:
+      - customer-api
+      - product-api
+      - order-api
+
+volumes:
+  sql_data:

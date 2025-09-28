@@ -1,0 +1,341 @@
+@page "/customers"
+@using WebClient.Application.DTOs.Customer
+@using WebClient.Application.Services
+@using Blazored.Toast.Services
+@inject ICustomerService CustomerService
+@inject IToastService ToastService
+@inject ILogger<Customers> Logger
+
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Customers</PageTitle>
+
+@if (customers == null)
+{
+    <div class="container mt-4">
+        <p><em>Loading customers...</em></p>
+    </div>
+}
+else
+{
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1>Customers</h1>
+            <button class="btn btn-success" @onclick="OpenCreateModal">Create New Customer</button>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Address</th>
+                        <th>Registration Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (customers.Any())
+                    {
+                        @foreach (var customer in customers)
+                        {
+                            <tr>
+                                <td>@customer.Id</td>
+                                <td>@customer.Name</td>
+                                <td>@customer.Email</td>
+                                <td>@(customer.Address != null ? $"{customer.Address.Street} {customer.Address.Number}, {customer.Address.City}, {customer.Address.Country}" : "N/A")</td>
+                                <td>@customer.RegistrationDate.ToShortDateString()</td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm me-1" @onclick="() => OpenEditModal(customer)">Edit</button>
+                                    <button class="btn btn-danger btn-sm" @onclick="() => OpenDeleteModal(customer.Id)">Delete</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center">No customers available.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@if (showEditModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Customer</h5>
+                    <button type="button" class="btn-close" @onclick="CloseEditModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="editCustomer" OnValidSubmit="HandleUpdateCustomer">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+                        <div class="mb-3">
+                            <label for="editName" class="form-label">Name</label>
+                            <InputText id="editName" class="form-control" @bind-Value="editCustomer.Name" />
+                            <ValidationMessage For="@(() => editCustomer.Name)" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="editEmail" class="form-label">Email</label>
+                            <InputText id="editEmail" class="form-control" @bind-Value="editCustomer.Email" />
+                            <ValidationMessage For="@(() => editCustomer.Email)" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Address</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="editStreet" class="form-label">Street</label>
+                                    <InputText id="editStreet" class="form-control" @bind-Value="editCustomer.Address.Street" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="editNumber" class="form-label">Number</label>
+                                    <InputNumber id="editNumber" class="form-control" @bind-Value="editCustomer.Address.Number" />
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <label for="editCity" class="form-label">City</label>
+                                    <InputText id="editCity" class="form-control" @bind-Value="editCustomer.Address.City" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="editCountry" class="form-label">Country</label>
+                                    <InputText id="editCountry" class="form-control" @bind-Value="editCustomer.Address.Country" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showDeleteModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDeleteModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this customer? This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="HandleDeleteCustomer">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showCreateModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Customer</h5>
+                    <button type="button" class="btn-close" @onclick="CloseCreateModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="createCustomer" OnValidSubmit="HandleCreateCustomer">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+                        <div class="mb-3">
+                            <label for="createName" class="form-label">Name *</label>
+                            <InputText id="createName" class="form-control" @bind-Value="createCustomer.Name" />
+                            <ValidationMessage For="@(() => createCustomer.Name)" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="createEmail" class="form-label">Email *</label>
+                            <InputText id="createEmail" class="form-control" @bind-Value="createCustomer.Email" />
+                            <ValidationMessage For="@(() => createCustomer.Email)" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Address</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="createStreet" class="form-label">Street</label>
+                                    <InputText id="createStreet" class="form-control" @bind-Value="createCustomer.Address.Street" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="createNumber" class="form-label">Number</label>
+                                    <InputNumber id="createNumber" class="form-control" @bind-Value="createCustomer.Address.Number" />
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <label for="createCity" class="form-label">City</label>
+                                    <InputText id="createCity" class="form-control" @bind-Value="createCustomer.Address.City" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="createCountry" class="form-label">Country</label>
+                                    <InputText id="createCountry" class="form-control" @bind-Value="createCustomer.Address.Country" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseCreateModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Create Customer</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private IEnumerable<CustomerResponseDto>? customers;
+    private UpdateCustomerRequestDto? editCustomer;
+    private CreateCustomerRequestDto createCustomer = new() { Name = "", Email = "", Address = new AddressDto { Street = "", City = "", Country = "", Number = 0 } };
+    private int editingCustomerId;
+    private int deleteCustomerId;
+    private bool showEditModal;
+    private bool showDeleteModal;
+    private bool showCreateModal;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await LoadCustomers();
+                Logger.LogInformation("Loaded customers successfully");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to load customers");
+                ToastService.ShowError("Failed to load customers");
+                customers = Enumerable.Empty<CustomerResponseDto>();
+            }
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadCustomers()
+    {
+        var result = await CustomerService.GetAllCustomersAsync();
+        if (result.IsSuccess)
+        {
+            customers = result.Value;
+        }
+        else
+        {
+            Logger.LogError("Failed to load customers. API errors: {Errors}", string.Join(", ", result.Errors));
+            ToastService.ShowError("Failed to load customers");
+            customers = Enumerable.Empty<CustomerResponseDto>();
+        }
+    }
+
+    private void OpenCreateModal()
+    {
+        createCustomer = new CreateCustomerRequestDto { Name = "", Email = "", Address = new AddressDto { Street = "", City = "", Country = "", Number = 0 } };
+        showCreateModal = true;
+    }
+
+    private void CloseCreateModal()
+    {
+        showCreateModal = false;
+    }
+
+    private async Task HandleCreateCustomer()
+    {
+        var result = await CustomerService.CreateCustomerAsync(createCustomer);
+        if (result.IsSuccess)
+        {
+            CloseCreateModal();
+            await LoadCustomers();
+            StateHasChanged();
+            Logger.LogInformation("Customer created successfully");
+            ToastService.ShowSuccess("Customer created successfully");
+        }
+        else
+        {
+            Logger.LogError("Failed to create customer. API errors: {Errors}", string.Join(", ", result.Errors));
+            ToastService.ShowError("Failed to create customer");
+        }
+    }
+
+    private void OpenEditModal(CustomerResponseDto customer)
+    {
+        editingCustomerId = customer.Id;
+        editCustomer = new UpdateCustomerRequestDto
+        {
+            Name = customer.Name,
+            Email = customer.Email,
+            Address = customer.Address ?? new AddressDto { Street = "", City = "", Country = "", Number = 0 }
+        };
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editCustomer = null;
+    }
+
+    private async Task HandleUpdateCustomer()
+    {
+        if (editCustomer == null) return;
+
+        var result = await CustomerService.UpdateCustomerAsync(editingCustomerId, editCustomer);
+        if (result.IsSuccess)
+        {
+            CloseEditModal();
+            await LoadCustomers();
+            StateHasChanged();
+            Logger.LogInformation("Customer updated successfully");
+            ToastService.ShowSuccess("Customer updated successfully");
+        }
+        else
+        {
+            Logger.LogError("Failed to update customer {Id}. API errors: {Errors}", editingCustomerId, string.Join(", ", result.Errors));
+            ToastService.ShowError("Failed to update customer");
+        }
+    }
+
+    private void OpenDeleteModal(int id)
+    {
+        deleteCustomerId = id;
+        showDeleteModal = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+    }
+
+    private async Task HandleDeleteCustomer()
+    {
+        var result = await CustomerService.DeleteCustomerAsync(deleteCustomerId);
+        if (result.IsSuccess)
+        {
+            CloseDeleteModal();
+            await LoadCustomers();
+            StateHasChanged();
+            ToastService.ShowSuccess("Customer deleted successfully");
+        }
+        else
+        {
+            ToastService.ShowError("Failed to delete customer");
+            Logger.LogError("Failed to delete customer {Id}. API errors: {Errors}", editingCustomerId, string.Join(", ", result.Errors));
+        }
+    }
+}

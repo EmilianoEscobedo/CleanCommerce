@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\WebClient.Application\WebClient.Application.csproj" />
+      <ProjectReference Include="..\WebClient.Domain\WebClient.Domain.csproj" />
+      <ProjectReference Include="..\WebClient.Infrastructure\WebClient.Infrastructure.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="Services\AuthenticatedHttpHandler.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Blazored.Toast" Version="4.2.1" />
+      <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="wwwroot\images\background-logo.jpg" />
+    </ItemGroup>
+
+</Project>
