@@ -21,10 +21,13 @@ builder.Services.AddSwaggerDocumentation();
 // Serilog
 builder.Logging.ClearProviders();
 
+var logsOutputTemplate = "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {CorrelationId} {Level: u3}] {Username} {Message:lj}{NewLine}{Exception}";
 var loggingConfig = new LoggerConfiguration()
+    .WriteTo.Console(
+        outputTemplate: logsOutputTemplate)
     .WriteTo.File("Logs/log.txt",
         rollingInterval: RollingInterval.Day,
-        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {CorrelationId} {Level: u3}] {Username} {Message:lj}{NewLine}{Exception}")
+        outputTemplate: logsOutputTemplate)
     .MinimumLevel.Information()
     .CreateLogger();
 
