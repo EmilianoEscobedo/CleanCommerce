@@ -32,19 +32,6 @@ public class CustomerService : ICustomerService
             : Result<IEnumerable<CustomerResponseDto>>.Success(customers);
     }
 
-    public async Task<Result<CustomerResponseDto>> GetCustomerByIdAsync(int id)
-    {
-        var response = await _httpClient.GetAsync($"{_settings.CustomerBaseUrl}/{id}");
-        if (!response.IsSuccessStatusCode)
-            return Result<CustomerResponseDto>.Failure(
-                $"Failed to fetch customer {id}. Status: {response.StatusCode}");
-
-        var customer = await response.Content.ReadFromJsonAsync<CustomerResponseDto>();
-        return customer is null
-            ? Result<CustomerResponseDto>.Failure("Customer deserialization failed.")
-            : Result<CustomerResponseDto>.Success(customer);
-    }
-
     public async Task<Result<CustomerResponseDto>> CreateCustomerAsync(CreateCustomerRequestDto createCustomerDto)
     {
         var response = await _httpClient.PostAsJsonAsync($"{_settings.CustomerBaseUrl}", createCustomerDto);

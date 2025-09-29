@@ -6,7 +6,6 @@ namespace WebClient.Application.Services;
 public interface ICustomerService
 {
     Task<Result<IEnumerable<CustomerResponseDto>>> GetAllCustomersAsync();
-    Task<Result<CustomerResponseDto>> GetCustomerByIdAsync(int id);
     Task<Result<CustomerResponseDto>> CreateCustomerAsync(CreateCustomerRequestDto createCustomerDto);
     Task<Result<CustomerResponseDto>> UpdateCustomerAsync(int id, UpdateCustomerRequestDto updateCustomerDto);
     Task<Result<bool>> DeleteCustomerAsync(int id);
